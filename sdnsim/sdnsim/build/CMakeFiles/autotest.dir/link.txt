@@ -1,0 +1,1 @@
+/usr/bin/g++   -fopenmp -O3 -std=gnu++0x -O3 -DNDEBUG   CMakeFiles/autotest.dir/input_main.cpp.o CMakeFiles/autotest.dir/autopara.cpp.o CMakeFiles/autotest.dir/model3.cpp.o CMakeFiles/autotest.dir/sdnsim.cpp.o CMakeFiles/autotest.dir/attacker.cpp.o  -o autotest -rdynamic 

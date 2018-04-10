@@ -1,0 +1,219 @@
+from mininet.topo import Topo
+from mininet.net import Mininet
+from mininet.cli import CLI
+from mininet.node import Controller, OVSKernelSwitch, RemoteController, Ryu
+from time import sleep
+import glob
+#from mininet.node import Ryu
+
+
+#class ryuController( Controller ):
+#    def __init__( self, name, cdir='/home/shengliu/Workspace/mininet/custom/', command='ryu-manager', cargs='/home/shengliu/Workspace/ryu/ryuApp/dummyRouter.py', **kwargs ):
+#        Controller.__init__( self, name, cdir=cdir, command=command, cargs=cargs, **kwargs)
+
+
+class MyTopod( Topo ):
+    "Simple topology example."
+
+    def __init__( self ):
+        "Create custom topo."
+
+        # Initialize topology
+        Topo.__init__( self )
+
+        # Add hosts and switches
+
+        host1 = self.addHost('h1', ip='10.0.1.0')
+        host2 = self.addHost('h2', ip='10.0.1.1')
+        host3 = self.addHost('h3', ip='10.0.1.2')
+        host4 = self.addHost('h4', ip='10.0.1.3')
+        host5 = self.addHost('h5', ip='10.0.1.4')
+        host6 = self.addHost('h6', ip='10.0.1.5')
+        host7 = self.addHost('h7', ip='10.0.1.6')
+        host8 = self.addHost('h8', ip='10.0.1.7')
+        host9 = self.addHost('h9', ip='10.0.1.8')
+
+
+        switch1 = self.addSwitch( 's1', protocols='OpenFlow13' )
+        switch2 = self.addSwitch( 's2', protocols='OpenFlow13' )
+        switch3 = self.addSwitch( 's100', protocols='OpenFlow13' )
+        #switch4 = self.addSwitch( 's101' )
+
+        # Add links
+        self.addLink(host1, switch3, 0, 1)
+        self.addLink(host2, switch3, 0, 2)
+        self.addLink(host3, switch3, 0, 3)
+        self.addLink(host4, switch3, 0, 4)
+        self.addLink(host5, switch3, 0, 5)
+        self.addLink(host6, switch3, 0, 6)
+        self.addLink(host7, switch3, 0, 7)
+        self.addLink(host8, switch3, 0, 8)
+        self.addLink(host9, switch2, 0, 2)
+
+        self.addLink(switch3, switch1, 9, 1)
+        self.addLink(switch1, switch2, 2, 1)
+
+        #self.addLink(switch3, switch2, 3, 4)
+
+        #self.addLink(switch2, switch4, 2, 1)
+        #self.addLink(host4, switch4, 0, 2)
+        #self.addLink(host5, switch4, 0, 3)
+
+        #self.addLink( host1, switch1)
+        #self.addLink( switch1, switch2)
+        #self.addLink( host2, switch1)
+        #self.addLink(host3, switch2)
+        #self.addLink(host4, switch2)
+
+        #topos = { 'mytopod': ( lambda: MyTopod() )
+
+def readFile(path, flowNum, ruleNum):
+    with open(path) as fp:
+        for i in range(0, flowNum+3):
+            fline = fp.readline().strip().split()
+
+        fline = fp.readline().strip().split()
+        flowInterest = int(fline[0])
+        fline = fp.readline().strip().split()
+        attackFlow = int(fline[0])
+
+    return {'flowInterest': flowInterest, 'attackFlow': attackFlow}
+
+def simpleTest():
+    topo = MyTopod()
+    path = "/home/shengliu/Workspace/mininet/custom/controllerConfig.txt"
+    out_file = '/home/shengliu/Workspace/mininet/custom/dataResult.txt'
+    for file in glob.glob("/home/shengliu/Workspace/mininet/custom/data1/*.txt"):
+        with open(file) as fi:
+            lines = fi.readlines()
+            with open(path, 'w') as fo:
+                fo.writelines(lines)
+
+            net = Mininet( topo=topo, switch=OVSKernelSwitch, controller=Ryu('ryuController','/home/shengliu/Workspace/ryu/ryuApp/dummyRouter.py') )
+
+
+            #c1 = net.addController('c1', controller=RemoteController, ip="127.0.0.1", port=6633)
+            net.start()
+
+            s1 = net.get('s1')
+            s2 = net.get('s2')
+            h1 = net.get('h1')
+            h2 = net.get('h2')
+            h3 = net.get('h3')
+            h4 = net.get('h4')
+            h5 = net.get('h5')
+            h6 = net.get('h6')
+            h7 = net.get('h7')
+            h8 = net.get('h8')
+            #s1 = net.hosts[9]
+            #print "success!"
+            am = 10
+            #path = "/home/shengliu/Workspace/sdnsim/data1/8_12para1_50.txt"
+            rdret = readFile(path, 8, 12)
+            attackFlow = rdret['attackFlow']
+            flowInterest = rdret['flowInterest']
+            #for i in range(0, 10):
+            #	CLI(net)
+            #	print s1.cmd('ovs-ofctl -O openflow13 dump-flows s1')
+            sumA = 0
+            sumN = 0
+
+            for ct in range(1, 100):
+
+                for i in range(1, 9):
+                    h10 = net.get('h%d' % i)
+                    h10.cmd('python poissonProcess.py %d &' % i )
+
+
+                sleep (1.5*am)
+
+                ht = net.get('h%d' % flowInterest)
+                is_shown = ht.cmd('echo')
+               # print len(is_shown)
+                is_shown = is_shown.strip().split('\n')
+                #print is_shown
+		is_shown = is_shown[1]
+                is_shown = int(is_shown)
+                print is_shown
+                ha = net.get('h%d' % flowInterest)
+
+        #result = ha.cmd('echo') #clean the output of & command
+                ha.cmd('echo')
+                result = ha.cmd('ping 10.0.1.8 -c1')
+                print result
+		#print len(result)
+                result = result.strip().split('\n')
+                if len(result) == 6:
+			rtt = result[5].strip().split()
+		else:
+			rtt = result[7].strip().split()
+                rtt = rtt[3].split('/')
+        #print rtt[0]
+
+                if float(rtt[0]) > 2.0:
+                    attackResult = 0
+                else:
+                    attackResult = 1
+
+        #print attackResult
+        #print is_shown
+                if is_shown == attackResult:
+                    sumN = sumN + 1
+            #print "attack succeed"
+        #else:
+            #print "attack failed"
+                sleep (2 * am)
+
+
+                for i in range(1, 9):
+                    h10 = net.get('h%d' % i)
+                    h10.cmd('python poissonProcess.py %d &' % i )
+
+                sleep (1.5*am)
+
+                ht = net.get('h%d' % flowInterest)
+                is_shown = ht.cmd('echo')
+                #print len(is_shown)
+		is_shown = is_shown.strip().split('\n')
+                #print is_shown
+		is_shown = is_shown[1]
+                is_shown = int(is_shown)
+                print is_shown
+                ha = net.get('h%d' % attackFlow)
+
+                ha.cmd('echo')
+                result = ha.cmd('ping 10.0.1.8 -c1')
+                print result
+		#print len(result)
+                result = result.strip().split('\n')
+                #print result
+		if len(result) == 6:		
+			rtt = result[5].strip().split()
+		else:
+			rtt = result[7].strip().split()
+                rtt = rtt[3].split('/')
+
+                if float(rtt[0]) > 2.0:
+                    attackResult = 0
+                else:
+                    attackResult = 1
+
+                if is_shown == attackResult:
+                    sumA = sumA + 1
+
+                sleep (2 * am)
+                print ct
+
+
+        #print sumA
+        #print sumN
+        with open(out_file, 'a') as fResult:
+            fResult.write('%s,%d,%d\n' % (file[46:len(file)], sumA, sumN))
+
+        print file
+        #CLI(net)
+        net.stop()
+        #with open(out_file, '') as
+
+if __name__ == '__main__':
+    simpleTest()
